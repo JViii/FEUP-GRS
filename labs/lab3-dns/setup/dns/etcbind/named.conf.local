@@ -1,0 +1,4 @@
+zone "feup.up.pt" {
+  type master;
+  file "/etc/bind/db.feup.up.pt";
+};
