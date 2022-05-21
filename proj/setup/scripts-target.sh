@@ -52,9 +52,6 @@ sudo docker run -d --net client_net --ip 10.0.1.100 --cap-add=NET_ADMIN --name c
 
 sudo docker run -d --volume "/home/theuser/dns/etcbind/db.feup.up.pt:/etc/bind/db.feup.up.pt" --volume "/home/theuser/dns/etcbind/named.conf.local:/etc/bind/named.conf.local" --volume /var/cache/bind --volume /var/lib/bind --rm --net dmz_net --ip 172.16.123.129 --cap-add=NET_ADMIN --name bind9_myorg_auth internetsystemsconsortium/bind9:9.16
 
-sudo docker exec externalhost dig @172.16.123.129 ns.myorg.net
-sudo docker exec client dig @172.16.123.129 www.internal.myorg.net
-
 # Routing
 sudo docker exec client /bin/bash -c 'ip r del default via 10.0.1.1'
 sudo docker exec client /bin/bash -c 'ip r a 10.0.2.0/24 via 10.0.1.254'
