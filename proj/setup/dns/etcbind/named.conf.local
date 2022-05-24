@@ -1,4 +1,4 @@
 zone "fe.up.pt" {
   type master;
-  file "/etc/bind/db.up.up.pt";
+  file "/etc/bind/db.fe.up.pt";
 };
