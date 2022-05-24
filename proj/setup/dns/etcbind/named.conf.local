@@ -1,4 +1,4 @@
-zone "feup.up.pt" {
+zone "fe.up.pt" {
   type master;
-  file "/etc/bind/db.feup.up.pt";
+  file "/etc/bind/db.up.up.pt";
 };

@@ -50,7 +50,7 @@ sudo docker run -d --net client_net --ip 10.0.1.100 --cap-add=NET_ADMIN --name c
 # DNS Server
 # sudo docker run -d --name bind9_myorg_auth --volume dns/etcbind:/etc/bind --volume /var/cache/bind --volume /var/lib/bind --rm --net dmz_net --ip 172.16.123.129 --cap-add=NET_ADMIN internetsystemsconsortium/bind9:9.16
 
-sudo docker run -d --volume "/home/theuser/dns/etcbind/db.feup.up.pt:/etc/bind/db.feup.up.pt" --volume "/home/theuser/dns/etcbind/named.conf.local:/etc/bind/named.conf.local" --volume /var/cache/bind --volume /var/lib/bind --rm --net dmz_net --ip 172.16.123.129 --cap-add=NET_ADMIN --name bind9_myorg_auth internetsystemsconsortium/bind9:9.16
+sudo docker run -d --volume "/home/theuser/dns/etcbind/db.fe.up.pt:/etc/bind/db.fe.up.pt" --volume "/home/theuser/dns/etcbind/named.conf.local:/etc/bind/named.conf.local" --volume /var/cache/bind --volume /var/lib/bind --rm --net dmz_net --ip 172.16.123.129 --cap-add=NET_ADMIN --name bind9_myorg_auth internetsystemsconsortium/bind9:9.16
 
 # Routing
 sudo docker exec client /bin/bash -c 'ip r del default via 10.0.1.1'

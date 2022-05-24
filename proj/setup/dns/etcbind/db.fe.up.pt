@@ -1,16 +1,16 @@
 ; BIND data file for local loopback interface
 ;
 $TTL	604800
-@	IN	SOA	ns.feup.up.pt. root.feup.up.pt. (
+@	IN	SOA	ns.fe.up.pt. root.fe.up.pt. (
 			      2		; Serial
 			 604800		; Refresh
 			  86400		; Retry
 			2419200		; Expire
 			 604800 )	; Negative Cache TTL
 ;
- 	IN	NS	ns.feup.up.pt.
+ 	IN	NS	ns.fe.up.pt.
 ns 	IN	A	172.16.123.129
 	IN	AAAA	::1
 ;
-@	MX	10	mail.feup.up.pt.
+@	MX	10	mail.fe.up.pt.
 mail IN	 A	172.16.123.130
