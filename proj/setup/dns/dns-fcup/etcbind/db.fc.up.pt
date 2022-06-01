@@ -1,0 +1,16 @@
+; BIND data file for local loopback interface
+;
+$TTL	604800
+@	IN	SOA	ns.fc.up.pt. root.fc.up.pt. (
+			      2		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			 604800 )	; Negative Cache TTL
+;
+ 	IN	NS	ns.fc.up.pt.
+ns 	IN	A	172.116.123.129
+	IN	AAAA	::1
+;
+@	MX	10	mail.fc.up.pt.
+mail IN	 A	172.116.123.130

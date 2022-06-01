@@ -13,17 +13,23 @@ then
 fi
 
 # Restart and setup interfaces
-sudo docker rm -f client server router edgerouter externalhost bind9_myorg_auth
+sudo docker rm -f client server router edgerouter externalhost bind9_myorg_auth mailserver
 sudo docker network rm client_net server_net public_net dmz_net
 sudo ip l set ens19 up
-sudo ip l set ens20 up
-sudo ip l set ens21 up
+# sudo ip l set ens20 up
+# sudo ip l set ens21 up
 
 # Networks
-sudo docker network create -d macvlan --subnet=10.0.1.0/24 --gateway=10.0.1.1 -o parent=ens19 client_net
-sudo docker network create -d macvlan --subnet=10.0.2.0/24 --gateway=10.0.2.1 -o parent=ens20 server_net
-sudo docker network create public_net --subnet=172.31.255.0/24 --gateway=172.31.255.254
-sudo docker network create -d macvlan --subnet=172.16.123.128/28 --gateway=172.16.123.140 -o parent=ens21 dmz_net
+sudo docker network create --subnet=10.0.1.0/24 --gateway=10.0.1.1 client_net
+sudo docker network create --subnet=10.0.2.0/24 --gateway=10.0.2.1 server_net
+sudo docker network create --subnet=172.31.255.0/24 --gateway=172.31.255.254 -o parent=ens19 public_net
+# sudo docker network create -d macvlan --subnet=172.31.255.0/24 --gateway=172.31.255.254 -o parent=ens19 public_net
+sudo docker network create --subnet=172.16.123.128/28 --gateway=172.16.123.140 dmz_net
+
+# sudo docker network create -d macvlan --subnet=10.0.1.0/24 --gateway=10.0.1.1 -o parent=ens19 client_net
+# sudo docker network create -d macvlan --subnet=10.0.2.0/24 --gateway=10.0.2.1 -o parent=ens20 server_net
+# sudo docker network create public_net --subnet=172.31.255.0/24 --gateway=172.31.255.254
+# sudo docker network create -d macvlan --subnet=172.16.123.128/28 --gateway=172.16.123.140 -o parent=ens21 dmz_net
 
 # Build images
 sudo docker build --tag router-ubuntu:latest ./images/router-ubuntu
@@ -49,8 +55,22 @@ sudo docker run -d --net client_net --ip 10.0.1.100 --cap-add=NET_ADMIN --name c
 
 # DNS Server
 # sudo docker run -d --name bind9_myorg_auth --volume dns/etcbind:/etc/bind --volume /var/cache/bind --volume /var/lib/bind --rm --net dmz_net --ip 172.16.123.129 --cap-add=NET_ADMIN internetsystemsconsortium/bind9:9.16
+sudo docker run -d --volume "/home/theuser/dns-feup/etcbind/db.fe.up.pt:/etc/bind/db.fe.up.pt" --volume "/home/theuser/dns-feup/etcbind/named.conf.local:/etc/bind/named.conf.local" --volume /var/cache/bind --volume /var/lib/bind --rm --net dmz_net --ip 172.16.123.129 --cap-add=NET_ADMIN --name bind9_myorg_auth internetsystemsconsortium/bind9:9.16
 
-sudo docker run -d --volume "/home/theuser/dns/etcbind/db.fe.up.pt:/etc/bind/db.fe.up.pt" --volume "/home/theuser/dns/etcbind/named.conf.local:/etc/bind/named.conf.local" --volume /var/cache/bind --volume /var/lib/bind --rm --net dmz_net --ip 172.16.123.129 --cap-add=NET_ADMIN --name bind9_myorg_auth internetsystemsconsortium/bind9:9.16
+# Mail server
+# Password bigger than 5 characters and containing 2 numbers
+sudo docker run -d \
+                -e "ADMIN_USERNAME=root" \
+                -e "ADMIN_PASSWD=password"  \
+                -e "DOMAIN_NAME=fe.up.pt" \
+                -e "USERS=john12:john12,alice12:alice12" \
+                -v "/home/theuser/data/feup/mysql":"/var/lib/mysql" -v "/home/theuser/data/feup/vmail/":"/var/vmail" -v "/home/theuser/data/feup/log":"/var/log" \
+                --net dmz_net --ip 172.16.123.130 --cap-add=NET_ADMIN \
+                --name mailserver marooou/postfix-roundcube
+                # -p 25:25 -p 80:80 -p 110:110 -p 143:143 -p 465:465 -p 993:993 -p 995:995 \
+
+# sudo docker run -e "ADMIN_USERNAME=root" -e "ADMIN_PASSWD=password" -e "DOMAIN_NAME=fe.up.pt" -e "USERS=john12:john12,alice12:alice12" -d -v /home/theuser/data/mysql:/var/lib/mysql -v /home/theuser/data/vmail/:/var/vmail -v /home/theuser/data/log:/var/log --name mailserver -p 25:25 -p 80:80 -p 110:110 -p 143:143 -p 465:465 -p 993:993 -p 995:995 --net dmz_net --ip 172.16.123.130 --cap-add=NET_ADMIN marooou/postfix-roundcube
+
 
 # Routing
 sudo docker exec client /bin/bash -c 'ip r del default via 10.0.1.1'
@@ -58,7 +78,7 @@ sudo docker exec client /bin/bash -c 'ip r a 10.0.2.0/24 via 10.0.1.254'
 sudo docker exec client /bin/bash -c 'ip r a default via 10.0.1.254'
 
 sudo docker exec server /bin/bash -c 'ip r del default via 10.0.2.1'
-sudo docker exec server /bin/bash -c 'ip r a 1.0.1.0/24 via 10.0.2.254'
+sudo docker exec server /bin/bash -c 'ip r a 10.0.1.0/24 via 10.0.2.254'
 sudo docker exec server /bin/bash -c 'ip r a default via 10.0.2.254'
 
 sudo docker exec router /bin/bash -c 'ip r d default via 10.0.1.1'
@@ -78,8 +98,11 @@ sudo docker exec edgerouter /bin/bash -c 'iptables -A FORWARD -m state --state N
 sudo docker exec externalhost /bin/bash -c 'ip r a 172.16.123.128/28 via 172.31.255.253'
 sudo docker exec externalhost /bin/bash -c 'ip r a 10.0.0.0/8 via 172.31.255.253'
 
-sudo docker exec bind9_myorg_auth ip r d default via 172.16.123.140
-sudo docker exec bind9_myorg_auth ip r a default via 172.16.123.139
+sudo docker exec bind9_myorg_auth /bin/bash -c 'ip r d default via 172.16.123.140'
+sudo docker exec bind9_myorg_auth /bin/bash -c 'ip r a default via 172.16.123.139'
+
+sudo docker exec mailserver /bin/bash -c 'ip r d default via 172.16.123.140'
+sudo docker exec mailserver /bin/bash -c 'ip r a default via 172.16.123.139'
 
 # Let docker know about the DMZ network and NAT it
 sudo ip r a 172.16.123.128/28 via 172.31.255.253

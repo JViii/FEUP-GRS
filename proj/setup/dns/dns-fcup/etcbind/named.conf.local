@@ -1,0 +1,4 @@
+zone "fc.up.pt" {
+  type master;
+  file "/etc/bind/db.fc.up.pt";
+};
