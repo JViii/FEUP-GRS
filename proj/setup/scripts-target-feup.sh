@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Allow ip forwarding
+sudo sysctl -w net.ipv4.ip_forward=1
+
 # Route setup to access internet
 sudo ip route del default via 192.168.88.1
 sudo ip r a default via 192.168.88.100
@@ -10,19 +13,25 @@ then
   echo "Installing docker"
   chmod +x docker-install.sh
   ./docker-install.sh
+  if [ ! $(which docker) ]
+    then
+    echo "Normal installation failed, trying repository docker version"
+    sudo apt-get install docker.io
+  fi
 fi
 
 # Restart and setup interfaces
 sudo docker rm -f client server router edgerouter externalhost bind9_myorg_auth mailserver
 sudo docker network rm client_net server_net public_net dmz_net
 sudo ip l set ens19 up
+sudo ip addr add 172.31.255.254/24 dev ens19
 # sudo ip l set ens20 up
 # sudo ip l set ens21 up
 
 # Networks
 sudo docker network create --subnet=10.0.1.0/24 --gateway=10.0.1.1 client_net
 sudo docker network create --subnet=10.0.2.0/24 --gateway=10.0.2.1 server_net
-sudo docker network create --subnet=172.31.255.0/24 --gateway=172.31.255.254 -o parent=ens19 public_net
+sudo docker network create -d macvlan --subnet=172.31.255.0/24 --gateway=172.31.255.254 -o parent=ens19 public_net
 # sudo docker network create -d macvlan --subnet=172.31.255.0/24 --gateway=172.31.255.254 -o parent=ens19 public_net
 sudo docker network create --subnet=172.16.123.128/28 --gateway=172.16.123.140 dmz_net
 
@@ -44,10 +53,10 @@ sudo docker network connect dmz_net router --ip 172.16.123.142
 
 # External Router
 sudo docker run -d --rm --net dmz_net --ip 172.16.123.139 --cap-add=NET_ADMIN --name edgerouter router-ubuntu
-sudo docker network connect public_net edgerouter --ip 172.31.255.253
+sudo docker network connect public_net edgerouter --ip 172.31.255.1
 
 # External Client
-sudo docker run -d --net public_net --ip 172.31.255.100 --cap-add=NET_ADMIN --name externalhost client-browsertime
+sudo docker run -d --net public_net --ip 172.31.255.101 --cap-add=NET_ADMIN --name externalhost client-browsertime
 
 # Client and server
 sudo docker run -d --net server_net --ip 10.0.2.100 --cap-add=NET_ADMIN --name server server-nginx 
@@ -95,8 +104,8 @@ sudo docker exec edgerouter /bin/bash -c 'iptables -A FORWARD -m state --state E
 sudo docker exec edgerouter /bin/bash -c 'iptables -A FORWARD -m state --state NEW -i eth0 -j ACCEPT'
 sudo docker exec edgerouter /bin/bash -c 'iptables -A FORWARD -m state --state NEW -i eth1 -d 172.16.123.128/28 -j ACCEPT'
 
-sudo docker exec externalhost /bin/bash -c 'ip r a 172.16.123.128/28 via 172.31.255.253'
-sudo docker exec externalhost /bin/bash -c 'ip r a 10.0.0.0/8 via 172.31.255.253'
+sudo docker exec externalhost /bin/bash -c 'ip r a 172.16.123.128/28 via 172.31.255.1'
+sudo docker exec externalhost /bin/bash -c 'ip r a 10.0.0.0/8 via 172.31.255.1'
 
 sudo docker exec bind9_myorg_auth /bin/bash -c 'ip r d default via 172.16.123.140'
 sudo docker exec bind9_myorg_auth /bin/bash -c 'ip r a default via 172.16.123.139'
@@ -104,6 +113,10 @@ sudo docker exec bind9_myorg_auth /bin/bash -c 'ip r a default via 172.16.123.13
 sudo docker exec mailserver /bin/bash -c 'ip r d default via 172.16.123.140'
 sudo docker exec mailserver /bin/bash -c 'ip r a default via 172.16.123.139'
 
+sudo ip r a 172.31.255.0/28 dev ens19
+sudo ip r a 172.16.123.128/28 via 172.31.255.1
+sudo ip r a 172.116.123.128/28 via 172.31.255.2
+sudo iptables -A FORWARD -m state --state ESTABLISHED,RELATED -i ens19 -j ACCEPT
+sudo iptables -A FORWARD -m state --state NEW -i ens19 -j ACCEPT
 # Let docker know about the DMZ network and NAT it
-sudo ip r a 172.16.123.128/28 via 172.31.255.253
-sudo iptables -t nat -A POSTROUTING -s 172.16.123.128/28 -o eth4 -j MASQUERADE
+# sudo iptables -t nat -A POSTROUTING -s 172.16.123.128/28 -o eth4 -j MASQUERADE
