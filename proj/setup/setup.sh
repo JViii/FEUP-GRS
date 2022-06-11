@@ -15,3 +15,8 @@ scp -r ./images/ vmc:/home/theuser/
 scp ./docker-install.sh vmc:/home/theuser/
 scp -r ./dns/dns-fcup/ vmc:/home/theuser
 ssh vmc "bash -s" < scripts-target-fcup.sh
+
+## Ansible install
+echo "Installing ansible"
+  chmod +x ansible-install.sh
+  ./ansible-install.sh
