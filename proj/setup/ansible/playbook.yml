@@ -1,0 +1,6 @@
+- hosts: targets
+  tasks:
+    - name: deploy template
+      template:
+        src: playbook.j2
+        dest: ~/playbook.conf
